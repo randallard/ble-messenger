@@ -42,6 +42,13 @@
             background-color: #f2dede;
             color: #a94442;
         }
+        #analogValue {
+            font-size: 24px;
+            margin: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -50,6 +57,7 @@
     <button id="connectBtn" class="button">Connect to Device</button>
     <button id="startAnimation" class="button" disabled>Start Animation</button>
     <button id="stopAnimation" class="button" disabled>Stop Animation</button>
+    <div id="analogValue">Analog Value: --</div>
 
     <script>
         const serviceUuid = '180a';
@@ -64,6 +72,7 @@
         const startAnimation = document.getElementById('startAnimation');
         const stopAnimation = document.getElementById('stopAnimation');
         const statusDiv = document.getElementById('status');
+        const analogValueDiv = document.getElementById('analogValue');
 
         function updateStatus(connected) {
             statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
@@ -71,6 +80,9 @@
             startAnimation.disabled = !connected;
             stopAnimation.disabled = !connected;
             connectBtn.textContent = connected ? 'Disconnect' : 'Connect to Device';
+            if (!connected) {
+                analogValueDiv.textContent = 'Analog Value: --';
+            }
         }
 
         async function connectToDevice() {
@@ -82,35 +94,29 @@
             }
 
             try {
-                // Request device with specific service UUID
                 device = await navigator.bluetooth.requestDevice({
                     filters: [{ services: [serviceUuid] }]
                 });
 
                 console.log('Device selected:', device.name);
                 
-                // Add disconnect listener
                 device.addEventListener('gattserverdisconnected', () => {
                     console.log('Device disconnected');
                     updateStatus(false);
                 });
 
-                // Connect to device
                 const server = await device.gatt.connect();
                 console.log('Connected to GATT server');
 
-                // Get service
                 const service = await server.getPrimaryService(serviceUuid);
                 console.log('Got service');
 
-                // Get characteristics
                 switchCharacteristic = await service.getCharacteristic(switchCharUuid);
                 randomCharacteristic = await service.getCharacteristic(randomReadingUuid);
                 console.log('Got characteristics');
 
                 updateStatus(true);
 
-                // Set up notification handling
                 await randomCharacteristic.startNotifications();
                 randomCharacteristic.addEventListener('characteristicvaluechanged', handleRandomValue);
 
@@ -121,8 +127,10 @@
         }
 
         function handleRandomValue(event) {
-            const value = event.target.value.getUint8(0);
-            console.log('Random value:', value);
+            // Read as 16-bit value (2 bytes) for full analog range
+            const value = event.target.value.getUint16(0, true); // true for little-endian
+            console.log('Analog value:', value);
+            analogValueDiv.textContent = `Analog Value: ${value}`;
         }
 
         async function writeSwitch(value) {
