@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arduino BLE Controller</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .connected {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .disconnected {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <h1>Arduino UNO R4 WiFi Controller</h1>
+    <div id="status" class="disconnected">Disconnected</div>
+    <button id="connectBtn" class="button">Connect to Device</button>
+    <button id="startAnimation" class="button" disabled>Start Animation</button>
+    <button id="stopAnimation" class="button" disabled>Stop Animation</button>
+
+    <script>
+        const serviceUuid = '180a';
+        const switchCharUuid = '2a57';
+        const randomReadingUuid = '2a58';
+        
+        let device = null;
+        let switchCharacteristic = null;
+        let randomCharacteristic = null;
+
+        const connectBtn = document.getElementById('connectBtn');
+        const startAnimation = document.getElementById('startAnimation');
+        const stopAnimation = document.getElementById('stopAnimation');
+        const statusDiv = document.getElementById('status');
+
+        function updateStatus(connected) {
+            statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
+            statusDiv.className = connected ? 'connected' : 'disconnected';
+            startAnimation.disabled = !connected;
+            stopAnimation.disabled = !connected;
+            connectBtn.textContent = connected ? 'Disconnect' : 'Connect to Device';
+        }
+
+        async function connectToDevice() {
+            if (device && device.gatt.connected) {
+                await device.gatt.disconnect();
+                device = null;
+                updateStatus(false);
+                return;
+            }
+
+            try {
+                // Request device with specific service UUID
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [serviceUuid] }]
+                });
+
+                console.log('Device selected:', device.name);
+                
+                // Add disconnect listener
+                device.addEventListener('gattserverdisconnected', () => {
+                    console.log('Device disconnected');
+                    updateStatus(false);
+                });
+
+                // Connect to device
+                const server = await device.gatt.connect();
+                console.log('Connected to GATT server');
+
+                // Get service
+                const service = await server.getPrimaryService(serviceUuid);
+                console.log('Got service');
+
+                // Get characteristics
+                switchCharacteristic = await service.getCharacteristic(switchCharUuid);
+                randomCharacteristic = await service.getCharacteristic(randomReadingUuid);
+                console.log('Got characteristics');
+
+                updateStatus(true);
+
+                // Set up notification handling
+                await randomCharacteristic.startNotifications();
+                randomCharacteristic.addEventListener('characteristicvaluechanged', handleRandomValue);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error);
+            }
+        }
+
+        function handleRandomValue(event) {
+            const value = event.target.value.getUint8(0);
+            console.log('Random value:', value);
+        }
+
+        async function writeSwitch(value) {
+            if (!switchCharacteristic) {
+                console.error('No characteristic available');
+                return;
+            }
+            
+            try {
+                await switchCharacteristic.writeValue(Uint8Array.from([value]));
+                console.log('Wrote value:', value);
+            } catch (error) {
+                console.error('Error writing value:', error);
+                alert('Error writing value: ' + error);
+            }
+        }
+
+        // Event Listeners
+        connectBtn.addEventListener('click', connectToDevice);
+        startAnimation.addEventListener('click', () => writeSwitch(1));
+        stopAnimation.addEventListener('click', () => writeSwitch(0));
+    </script>
+</body>
+</html>
