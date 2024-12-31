@@ -59,9 +59,9 @@
         <button id="stopAnimation" class="button" disabled>Stop Animation</button>
         
         <script>
-            const serviceUuid = '0000180f-0000-1000-8000-00805f9b34fb';  // Changed to standard Battery Service UUID
-            const switchCharUuid = 0x2A1B;  // Changed to Battery Level State
-            
+            const serviceUuid = '0000180f-0000-1000-8000-00805f9b34fb';  // Full Battery Service UUID
+            const switchCharUuid = '00002a1b-0000-1000-8000-00805f9b34fb';  // Full Battery State UUID
+
             let device = null;
             let switchCharacteristic = null;
 
