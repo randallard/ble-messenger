@@ -1,143 +1,352 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Arduino BLE Controller</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-                text-align: center;
-            }
-            .button {
-                background-color: #4CAF50;
-                border: none;
-                color: white;
-                padding: 15px 32px;
-                text-align: center;
-                text-decoration: none;
-                display: inline-block;
-                font-size: 16px;
-                margin: 4px 2px;
-                cursor: pointer;
-                border-radius: 4px;
-            }
-            .button:disabled {
-                background-color: #cccccc;
-                cursor: not-allowed;
-            }
-            #status {
-                margin: 20px;
-                padding: 10px;
-                border-radius: 4px;
-            }
-            .connected {
-                background-color: #dff0d8;
-                color: #3c763d;
-            }
-            .disconnected {
-                background-color: #f2dede;
-                color: #a94442;
-            }
-            #analogValue {
-                font-size: 24px;
-                margin: 20px;
-                padding: 10px;
-                background-color: #f8f9fa;
-                border-radius: 4px;
-            }
-        </style>
-    </head>
-    <body>
-        <h1>Arduino UNO R4 WiFi Controller</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arduino Control Center</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .connected {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .disconnected {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        #customText {
+            width: 80%;
+            max-width: 400px;
+            padding: 10px;
+            margin: 20px 0;
+            font-size: 16px;
+            border: 2px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .input-container {
+            margin: 20px 0;
+        }
+        #messageArea {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            min-height: 200px;
+            overflow-y: auto;
+        }
+        .hidden {
+            display: none;
+        }
+        #notifications {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Arduino Control Center</h1>
+    
+    <div class="section">
+        <h2>Device Control</h2>
         <div id="status" class="disconnected">Disconnected</div>
         <button id="connectBtn" class="button">Connect to Device</button>
         <button id="startAnimation" class="button" disabled>Start Animation</button>
         <button id="stopAnimation" class="button" disabled>Stop Animation</button>
         
-        <script>
-            const serviceUuid = '0000180f-0000-1000-8000-00805f9b34fb';  // Full Battery Service UUID
-            const switchCharUuid = '00002a1b-0000-1000-8000-00805f9b34fb';  // Full Battery State UUID
+        <div class="input-container">
+            <input type="text" id="customText" maxlength="32" placeholder="Enter custom text (max 32 characters)">
+            <button id="sendText" class="button" disabled>Send Text</button>
+        </div>
+    </div>
 
-            let device = null;
-            let switchCharacteristic = null;
+    <div class="section">
+        <div id="setupArea">
+            <h2>Friend Connection</h2>
+            <div id="newConnection">
+                <button class="button" onclick="createConnection()">Create Connection</button>
+            </div>
 
-            const connectBtn = document.getElementById('connectBtn');
-            const startAnimation = document.getElementById('startAnimation');
-            const stopAnimation = document.getElementById('stopAnimation');
-            const statusDiv = document.getElementById('status');
-            const analogValueDiv = document.getElementById('analogValue');
+            <div id="joinConnection">
+                <input type="text" id="linkInput" placeholder="Enter connection link">
+                <button class="button" onclick="joinConnection()">Join</button>
+            </div>
+        </div>
 
-            function updateStatus(connected) {
-                statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
-                statusDiv.className = connected ? 'connected' : 'disconnected';
-                startAnimation.disabled = !connected;
-                stopAnimation.disabled = !connected;
-                connectBtn.textContent = connected ? 'Disconnect' : 'Connect to Device';
-                if (!connected) {
-                    analogValueDiv.textContent = 'Analog Value: --';
-                }
+        <div id="chatArea" class="hidden">
+            <h2>Chat</h2>
+            <div id="messageArea"></div>
+            <div class="input-container">
+                <input type="text" id="messageInput" placeholder="Type your message">
+                <button class="button" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notifications"></div>
+    
+    <script>
+        // BLE Configuration
+        const serviceUuid = '0000180f-0000-1000-8000-00805f9b34fb';
+        const switchCharUuid = '00002a1b-0000-1000-8000-00805f9b34fb';
+        const textCharUuid = '00002a1c-0000-1000-8000-00805f9b34fb';
+
+        let device = null;
+        let switchCharacteristic = null;
+        let textCharacteristic = null;
+
+        // Chat Configuration
+        const API_BASE = 'http://146.235.192.228';
+        let playerId = uuid.v4();
+        let currentConnectionId = null;
+        let pollInterval = null;
+
+        // BLE UI Elements
+        const connectBtn = document.getElementById('connectBtn');
+        const startAnimation = document.getElementById('startAnimation');
+        const stopAnimation = document.getElementById('stopAnimation');
+        const statusDiv = document.getElementById('status');
+        const customText = document.getElementById('customText');
+        const sendText = document.getElementById('sendText');
+
+        // BLE Functions
+        function updateStatus(connected) {
+            statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
+            statusDiv.className = connected ? 'connected' : 'disconnected';
+            startAnimation.disabled = !connected;
+            stopAnimation.disabled = !connected;
+            sendText.disabled = !connected;
+            connectBtn.textContent = connected ? 'Disconnect' : 'Connect to Device';
+        }
+
+        async function connectToDevice() {
+            if (device && device.gatt.connected) {
+                await device.gatt.disconnect();
+                device = null;
+                updateStatus(false);
+                return;
             }
 
-            async function connectToDevice() {
-                if (device && device.gatt.connected) {
-                    await device.gatt.disconnect();
-                    device = null;
-                    updateStatus(false);
-                    return;
-                }
-
-                try {
-                    device = await navigator.bluetooth.requestDevice({
-                        filters: [{ services: [serviceUuid] }]
-                    });
-
-                    console.log('Device selected:', device.name);
-                    
-                    device.addEventListener('gattserverdisconnected', () => {
-                        console.log('Device disconnected');
-                        updateStatus(false);
-                    });
-
-                    const server = await device.gatt.connect();
-                    console.log('Connected to GATT server');
-
-                    const service = await server.getPrimaryService(serviceUuid);
-                    console.log('Got service');
-
-                    switchCharacteristic = await service.getCharacteristic(switchCharUuid);
-                    console.log('Got characteristics');
-
-                    updateStatus(true);
-
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error: ' + error);
-                }
-            }
-
-            async function writeSwitch(value) {
-                if (!switchCharacteristic) {
-                    console.error('No characteristic available');
-                    return;
-                }
+            try {
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [serviceUuid] }]
+                });
                 
-                try {
-                    await switchCharacteristic.writeValue(Uint8Array.from([value]));
-                    console.log('Wrote value:', value);
-                } catch (error) {
-                    console.error('Error writing value:', error);
-                    alert('Error writing value: ' + error);
-                }
+                device.addEventListener('gattserverdisconnected', () => {
+                    console.log('Device disconnected');
+                    updateStatus(false);
+                });
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(serviceUuid);
+                switchCharacteristic = await service.getCharacteristic(switchCharUuid);
+                textCharacteristic = await service.getCharacteristic(textCharUuid);
+                
+                updateStatus(true);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error);
+            }
+        }
+
+        async function writeSwitch(value) {
+            if (!switchCharacteristic) return;
+            try {
+                await switchCharacteristic.writeValue(Uint8Array.from([value]));
+            } catch (error) {
+                console.error('Error writing value:', error);
+                alert('Error writing value: ' + error);
+            }
+        }
+
+        async function sendCustomText() {
+            if (!textCharacteristic) return;
+            const text = customText.value.trim();
+            if (!text) {
+                alert('Please enter some text');
+                return;
             }
 
-            // Event Listeners
-            connectBtn.addEventListener('click', connectToDevice);
-            startAnimation.addEventListener('click', () => writeSwitch(1));
-            stopAnimation.addEventListener('click', () => writeSwitch(0));
-        </script>
-    </body>
-    </html>
+            try {
+                const encoder = new TextEncoder();
+                await textCharacteristic.writeValue(encoder.encode(text));
+            } catch (error) {
+                console.error('Error sending text:', error);
+                alert('Error sending text: ' + error);
+            }
+        }
+
+        // Chat Functions
+        async function createConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/connections`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player_id: playerId })
+                });
+                
+                const connection = await response.json();
+                currentConnectionId = connection.id;
+                
+                const linkUrl = `${window.location.href}?link=${connection.link_id}`;
+                document.getElementById('notifications').innerHTML = `
+                    Share this link with your friend:<br>
+                    <input type="text" value="${linkUrl}" readonly style="width: 100%">
+                `;
+                
+                document.getElementById('setupArea').classList.add('hidden');
+                document.getElementById('chatArea').classList.remove('hidden');
+                appendMessage('System', 'Waiting for friend to join...');
+                
+                startPolling();
+            } catch (error) {
+                console.error('Error creating connection:', error);
+                document.getElementById('notifications').innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        async function joinConnection() {
+            const linkId = document.getElementById('linkInput').value;
+            try {
+                const response = await fetch(`${API_BASE}/connections/link/${linkId}/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player_id: playerId })
+                });
+                
+                const connection = await response.json();
+                currentConnectionId = connection.id;
+                
+                document.getElementById('setupArea').classList.add('hidden');
+                document.getElementById('chatArea').classList.remove('hidden');
+                
+                startPolling();
+            } catch (error) {
+                console.error('Error joining connection:', error);
+                document.getElementById('notifications').innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        async function sendMessage() {
+            const content = document.getElementById('messageInput').value;
+            if (!content.trim()) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/connections/${currentConnectionId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        content: content
+                    })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('messageInput').value = '';
+                    appendMessage('You', content);
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                document.getElementById('notifications').innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        function appendMessage(from, content) {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML += `<p><strong>${from}:</strong> ${content}</p>`;
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+
+        async function pollNotifications() {
+            try {
+                const response = await fetch(`${API_BASE}/players/${playerId}/notifications`);
+                if (response.ok) {
+                    const notifications = await response.json();
+                    if (notifications.length > 0) {
+                        notifications.forEach(notification => {
+                            if (notification.includes('Player') && notification.includes('joined')) {
+                                document.getElementById('setupArea').classList.add('hidden');
+                                document.getElementById('chatArea').classList.remove('hidden');
+                                appendMessage('System', 'Friend joined the chat!');
+                            } else if (notification.includes('Message from')) {
+                                const match = notification.match(/Message from (.*?): (.*)/);
+                                if (match) {
+                                    appendMessage(match[1], match[2]);
+                                }
+                            }
+                        });
+                        
+                        await fetch(`${API_BASE}/players/${playerId}/notifications/ack`, {
+                            method: 'POST'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error polling notifications:', error);
+            }
+        }
+
+        function startPolling() {
+            if (!pollInterval) {
+                pollInterval = setInterval(pollNotifications, 1000);
+            }
+        }
+
+        // Event Listeners
+        connectBtn.addEventListener('click', connectToDevice);
+        startAnimation.addEventListener('click', () => writeSwitch(1));
+        stopAnimation.addEventListener('click', () => writeSwitch(0));
+        sendText.addEventListener('click', sendCustomText);
+
+        // Check for link in URL when page loads
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const linkId = urlParams.get('link');
+            if (linkId) {
+                document.getElementById('linkInput').value = linkId;
+                joinConnection();
+            }
+        };
+    </script>
+</body>
+</html>
