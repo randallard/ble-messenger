@@ -161,6 +161,7 @@
             <div class="input-container">
                 <input type="text" id="messageInput" placeholder="Type your message">
                 <button class="button" onclick="sendMessage()">Send</button>
+                <button class="button" onclick="sendHeartAnimation()">❤️</button>
             </div>
         </div>
     </div>
@@ -191,6 +192,27 @@
         const customText = document.getElementById('customText');
         const sendText = document.getElementById('sendText');
 
+        async function notifyConnectionStatus(status) {
+            if (!currentConnectionId) return; // Only send if we're in a chat
+            
+            const message = `Device ${status}`;
+            const url = `${API_BASE}/connections/${currentConnectionId}/messages`;
+            
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        content: message
+                    })
+                });
+                appendMessage('System', message);
+            } catch (error) {
+                console.error('Error sending connection status:', error);
+            }
+        }
+
         // BLE Functions
         function updateStatus(connected) {
             statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
@@ -199,6 +221,7 @@
             stopAnimation.disabled = !connected;
             sendText.disabled = !connected;
             connectBtn.textContent = connected ? 'Disconnect' : 'Connect to Device';
+            notifyConnectionStatus(connected ? 'Connected' : 'Disconnected');
         }
 
         async function connectToDevice() {
@@ -402,12 +425,32 @@
             return friendlyName;
         }
 
+        async function sendHeartAnimation() {
+            if (!currentConnectionId) return;
+            
+            // Send heart message to chat
+            const url = `${API_BASE}/connections/${currentConnectionId}/messages`;
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        content: "❤️" // Heart emoji
+                    })
+                });
+                appendMessage('You', "❤️");
+            } catch (error) {
+                console.error('Error sending heart message:', error);
+            }
+        }
+
         async function pollNotifications() {
             try {
                 const response = await fetch(`${API_BASE}/players/${playerId}/notifications`);
                 if (response.ok) {
                     const notifications = await response.json();
-                    console.log('Received notifications:', notifications);
+                    // console.log('Received notifications:', notifications);
                     
                     if (notifications.length > 0) {
                         notifications.forEach(notification => {
@@ -425,17 +468,33 @@
                                 if (match) {
                                     const senderPlayerId = match[1];
                                     const message = match[2];
-                                    console.log(`Message from ${senderPlayerId}: ${message}`);
-                                    
-                                    // If this is a new sender, try to use the saved friendly name
-                                    if (getFriendlyName(senderPlayerId) === 'Unknown') {
-                                        const connections = loadSavedConnections();
-                                        console.log('Saved connections:', connections);
-                                        // Get the friendly name that was entered when joining/creating
-                                        const friendlyName = Object.values(connections)[0];
-                                        if (friendlyName) {
-                                            console.log(`Assigning name ${friendlyName} to first message sender ${senderPlayerId}`);
-                                            saveFriendlyNameForPlayer(senderPlayerId, friendlyName);
+
+                                    if (message === "❤️" && device && device.gatt.connected) {
+                                        writeSwitch(1); // Start animation
+                                        setTimeout(() => writeSwitch(0), 10000); // Stop after 3 seconds
+                                    }
+                                    else {    
+                                        // If this is a new sender, try to use the saved friendly name
+                                        if (getFriendlyName(senderPlayerId) === 'Unknown') {
+                                            const connections = loadSavedConnections();
+                                            console.log('Saved connections:', connections);
+                                            // Get the friendly name that was entered when joining/creating
+                                            const friendlyName = Object.values(connections)[0];
+                                            if (friendlyName) {
+                                                console.log(`Assigning name ${friendlyName} to first message sender ${senderPlayerId}`);
+                                                saveFriendlyNameForPlayer(senderPlayerId, friendlyName);
+                                            }
+                                        }
+                                        
+                                        // Send message to Bluetooth device
+                                        if (textCharacteristic && device && device.gatt.connected) {
+                                            try {
+                                                const encoder = new TextEncoder();
+                                                textCharacteristic.writeValue(encoder.encode(message));
+                                                console.log('Sent message to Bluetooth device:', message);
+                                            } catch (error) {
+                                                console.error('Error sending message to Bluetooth device:', error);
+                                            }
                                         }
                                     }
                                     
