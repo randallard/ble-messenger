@@ -169,6 +169,16 @@
     <div id="notifications"></div>
     
     <script>
+        const API_BASE = 'http://146.235.192.228';
+        const API_ENDPOINTS = {
+            CREATE_CONNECTION: `${API_BASE}/connections`,
+            GET_CONNECTION: (linkId) => `${API_BASE}/connections/link/${linkId}`,
+            JOIN_CONNECTION: (linkId) => `${API_BASE}/connections/link/${linkId}/join`,
+            SEND_MESSAGE: (connectionId) => `${API_BASE}/connections/${connectionId}/messages`,
+            GET_NOTIFICATIONS: (playerId) => `${API_BASE}/players/${playerId}/notifications`,
+            ACK_NOTIFICATIONS: (playerId) => `${API_BASE}/players/${playerId}/notifications/ack`
+        };
+
         // BLE Configuration
         const serviceUuid = '0000180f-0000-1000-8000-00805f9b34fb';
         const switchCharUuid = '00002a1b-0000-1000-8000-00805f9b34fb';
@@ -179,8 +189,24 @@
         let textCharacteristic = null;
 
         // Chat Configuration
-        const API_BASE = 'http://146.235.192.228';
-        let playerId = uuid.v4();
+        function getOrCreatePlayerId() {
+            // Try to get existing player ID from localStorage
+            let storedPlayerId = localStorage.getItem('playerId');
+            
+            if (!storedPlayerId) {
+                // Only generate a new ID if one doesn't exist
+                storedPlayerId = uuid.v4();
+                localStorage.setItem('playerId', storedPlayerId);
+                console.log('Generated new player ID:', storedPlayerId);
+            } else {
+                console.log('Using existing player ID:', storedPlayerId);
+            }
+            
+            return storedPlayerId;
+        }
+
+        // Replace the player ID initialization with this
+        let playerId = getOrCreatePlayerId();
         let currentConnectionId = null;
         let pollInterval = null;
 
@@ -282,47 +308,13 @@
         }
 
         // Chat Functions
-        async function createConnection() {
-            const friendlyName = document.getElementById('newFriendlyName').value.trim();
-            if (!friendlyName) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/connections`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ player_id: playerId })
-                });
-                
-                const connection = await response.json();
-                currentConnectionId = connection.id;
-                
-                // Save the friendly name with the link ID
-                saveConnection(connection.link_id, friendlyName);
-                
-                const linkUrl = `${connection.link_id}`;
-                document.getElementById('notifications').innerHTML = `
-                    Share this link with your friend:<br>
-                    <input type="text" value="${linkUrl}" readonly style="width: 100%">
-                `;
-                
-                document.getElementById('setupArea').classList.add('hidden');
-                document.getElementById('chatArea').classList.remove('hidden');
-                appendMessage('System', 'Waiting for friend to join...');
-                
-                startPolling();
-            } catch (error) {
-                console.error('Error creating connection:', error);
-                document.getElementById('notifications').innerHTML = `Error: ${error.message}`;
-            }
-        }
-
-        async function joinConnection(retryAttempt = 0) {
+        async function joinConnection() {
             const linkId = document.getElementById('linkInput').value;
             const friendlyName = document.getElementById('friendlyName').value;
-            const notifications = document.getElementById('notifications');
             
+            // Save connection with the current player ID before attempting to join
             if (friendlyName) {
-                saveConnection(linkId, friendlyName);
+                saveConnection(linkId, friendlyName, playerId);  // Now passing the playerId
             }
 
             const url = `${API_BASE}/connections/link/${linkId}/join`;
@@ -332,7 +324,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ player_id: playerId })
                 });
-                
+
                 if (response.status === 404) {
                     notifications.innerHTML = `
                         <div class="error-notification">
@@ -478,11 +470,11 @@
                                         if (getFriendlyName(senderPlayerId) === 'Unknown') {
                                             const connections = loadSavedConnections();
                                             console.log('Saved connections:', connections);
-                                            // Get the friendly name that was entered when joining/creating
-                                            const friendlyName = Object.values(connections)[0];
-                                            if (friendlyName) {
-                                                console.log(`Assigning name ${friendlyName} to first message sender ${senderPlayerId}`);
-                                                saveFriendlyNameForPlayer(senderPlayerId, friendlyName);
+                                            // Get the friendly name from the first connection's friendlyName property
+                                            const firstConnection = Object.values(connections)[0];
+                                            if (firstConnection && firstConnection.friendlyName) {
+                                                console.log(`Assigning name ${firstConnection.friendlyName} to first message sender ${senderPlayerId}`);
+                                                saveFriendlyNameForPlayer(senderPlayerId, firstConnection.friendlyName);
                                             }
                                         }
                                         
@@ -516,11 +508,13 @@
             }
         }
 
-        function saveConnection(linkId, friendlyName) {
-            console.log(`Saving connection: ${linkId} -> ${friendlyName}`);
+        function saveConnection(linkId, friendlyName, playerId) {
+            console.log(`Saving connection: ${linkId} -> ${friendlyName} (Player: ${playerId})`);
             const connections = JSON.parse(localStorage.getItem('savedConnections') || '{}');
-            console.log('Current saved connections:', connections);
-            connections[linkId] = friendlyName;
+            connections[linkId] = {
+                friendlyName: friendlyName,
+                playerId: playerId
+            };
             localStorage.setItem('savedConnections', JSON.stringify(connections));
             console.log('Updated saved connections:', connections);
             displaySavedConnections();
@@ -530,6 +524,105 @@
             const connections = JSON.parse(localStorage.getItem('savedConnections') || '{}');
             console.log('Loading saved connections:', connections);
             return connections;
+        }
+
+        async function createConnection() {
+            const friendlyName = document.getElementById('newFriendlyName').value.trim();
+            if (!friendlyName) return;
+
+            try {
+                // Generate a new player ID for this connection
+                const newPlayerId = uuid.v4();
+                
+                const response = await fetch(`${API_BASE}/connections`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player_id: newPlayerId })
+                });
+                
+                const connection = await response.json();
+                currentConnectionId = connection.id;
+                
+                // Save connection with the new player ID
+                saveConnection(connection.link_id, friendlyName, newPlayerId);
+                
+                const linkUrl = `${connection.link_id}`;
+                document.getElementById('notifications').innerHTML = `
+                    Share this link with your friend:<br>
+                    <input type="text" value="${linkUrl}" readonly style="width: 100%">
+                `;
+                
+                document.getElementById('setupArea').classList.add('hidden');
+                document.getElementById('chatArea').classList.remove('hidden');
+                appendMessage('System', 'Waiting for friend to join...');
+                
+                // Use the new player ID for polling
+                playerId = newPlayerId;
+                startPolling();
+            } catch (error) {
+                console.error('Error creating connection:', error);
+                document.getElementById('notifications').innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        async function rejoinConnection(linkId) {
+            const connections = loadSavedConnections();
+            const connectionInfo = connections[linkId];
+            
+            if (!connectionInfo || !connectionInfo.playerId) {
+                document.getElementById('notifications').innerHTML = `
+                    <div class="error-notification">
+                        Error: Connection information not found or incomplete
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                // Use the saved player ID for this connection
+                playerId = connectionInfo.playerId;
+                currentConnectionId = linkId;
+                
+                // Update UI
+                document.getElementById('setupArea').classList.add('hidden');
+                document.getElementById('chatArea').classList.remove('hidden');
+                document.getElementById('notifications').innerHTML = '';
+                document.getElementById('friendlyName').value = connectionInfo.friendlyName;
+                
+                // Start polling with the correct player ID
+                startPolling();
+                appendMessage('System', 'Reconnected to chat');
+                
+            } catch (error) {
+                console.error('Error reconnecting:', error);
+                document.getElementById('notifications').innerHTML = `
+                    <div class="error-notification">
+                        Error reconnecting: ${error.message}
+                        <button class="retry-button" onclick="rejoinConnection('${linkId}')">
+                            Retry Connection
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function displaySavedConnections() {
+            const connections = loadSavedConnections();
+            const container = document.getElementById('savedConnections');
+            container.innerHTML = '<h3>Saved Connections</h3>';
+            
+            Object.entries(connections).forEach(([linkId, info]) => {
+                const div = document.createElement('div');
+                div.className = 'connection-item';
+                div.innerHTML = `
+                    <span>${info.friendlyName}</span>
+                    <div>
+                        <button class="button" onclick="rejoinConnection('${linkId}')">Rejoin</button>
+                        <button class="button" style="background-color: #dc3545;" onclick="deleteConnection('${linkId}')">Delete</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
         }
 
         function appendMessage(from, content) {
@@ -561,32 +654,6 @@
             delete connections[linkId];
             localStorage.setItem('savedConnections', JSON.stringify(connections));
             displaySavedConnections();
-        }
-
-        function displaySavedConnections() {
-            const connections = loadSavedConnections();
-            const container = document.getElementById('savedConnections');
-            container.innerHTML = '<h3>Saved Connections</h3>';
-            
-            Object.entries(connections).forEach(([linkId, name]) => {
-                const div = document.createElement('div');
-                div.className = 'connection-item';
-                div.innerHTML = `
-                    <span>${name}</span>
-                    <div>
-                        <button class="button" onclick="rejoinConnection('${linkId}')">Rejoin</button>
-                        <button class="button" style="background-color: #dc3545;" onclick="deleteConnection('${linkId}')">Delete</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        async function rejoinConnection(linkId) {
-            const connections = loadSavedConnections();
-            document.getElementById('linkInput').value = linkId;
-            document.getElementById('friendlyName').value = connections[linkId] || '';
-            await joinConnection();
         }
 
         // Modified joinConnection function
