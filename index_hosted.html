@@ -169,7 +169,7 @@
     <div id="notifications"></div>
     
     <script>
-        const API_BASE = 'http://64.181.233.1/friends';
+        const API_BASE = '64.181.233.1/friends';
         const API_ENDPOINTS = {
             CREATE_CONNECTION: `${API_BASE}/connections`,
             GET_CONNECTION: (linkId) => `${API_BASE}/connections/link/${linkId}`,
@@ -536,11 +536,23 @@
                 
                 const response = await fetch(`${API_BASE}/connections`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json' },
                     body: JSON.stringify({ player_id: newPlayerId })
                 });
+        
+                console.log('Response status:', response.status);
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
                 
-                const connection = await response.json();
+                let connection;
+                try {
+                    connection = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse response:', e);
+                    throw new Error(`Invalid JSON response: ${responseText}`);
+                }
                 currentConnectionId = connection.id;
                 
                 // Save connection with the new player ID
