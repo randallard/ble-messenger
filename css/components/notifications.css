@@ -1,0 +1,32 @@
+
+/* components/notifications.css */
+#notifications {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    color: #333;
+    transition: all 0.3s ease;
+}
+
+[data-theme='dark'] #notifications {
+    background-color: #2a2a2a;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+}
+
+.error-notification {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+[data-theme='dark'] .error-notification {
+    background-color: #442326;
+    border: 1px solid #582a2e;
+    color: #ffb3b3;
+}

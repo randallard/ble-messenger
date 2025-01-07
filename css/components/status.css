@@ -1,0 +1,27 @@
+
+/* components/status.css */
+#status {
+    margin: 20px;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.connected {
+    background-color: #dff0d8;
+    color: #3c763d;
+}
+
+[data-theme='dark'] .connected {
+    background-color: #1b4d1b;
+    color: #98c098;
+}
+
+.disconnected {
+    background-color: #f2dede;
+    color: #a94442;
+}
+
+[data-theme='dark'] .disconnected {
+    background-color: #4d1b1b;
+    color: #c09898;
+}

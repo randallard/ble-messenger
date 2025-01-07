@@ -1,0 +1,23 @@
+:root {
+    /* Light theme variables */
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --section-bg: #ffffff;
+    --border-color: #ccc;
+    --button-bg: #4CAF50;
+    --button-text: white;
+    --input-bg: #ffffff;
+    --input-border: #ccc;
+}
+
+[data-theme='dark'] {
+    /* Dark theme variables */
+    --bg-color: #1a1a1a;
+    --text-color: #ffffff;
+    --section-bg: #2d2d2d;
+    --border-color: #404040;
+    --button-bg: #2e7d32;
+    --button-text: white;
+    --input-bg: #3d3d3d;
+    --input-border: #505050;
+}

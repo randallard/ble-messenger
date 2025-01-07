@@ -1,0 +1,23 @@
+
+/* layout.css */
+body {
+    font-family: Arial, sans-serif;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.section {
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 8px;
+    background-color: var(--section-bg);
+}
+
+.hidden {
+    display: none;
+}

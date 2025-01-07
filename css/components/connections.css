@@ -1,0 +1,20 @@
+
+/* components/connections.css */
+.saved-connections {
+    margin: 20px 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.connection-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.connection-item:last-child {
+    border-bottom: none;
+}
