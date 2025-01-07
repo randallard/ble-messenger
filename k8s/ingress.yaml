@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/strip-prefix: "true" 
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /ble-connect
+        pathType: Prefix
+        backend:
+          service:
+            name: ble-messenger
+            port:
+              number: 80
+      - path: /friends
+        pathType: Prefix
+        backend:
+          service:
+            name: friends-connect
+            port:
+              number: 80
