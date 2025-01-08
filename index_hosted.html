@@ -19,7 +19,6 @@
 <body>
 
     <div id="initialSetup" class="section">
-        <h1>Welcome to BAM</h1>
         <p>Bluetooth and Messaging</p>
         
         <div class="input-container">
@@ -33,30 +32,22 @@
     
     <!-- Add hidden class to other sections -->
     <div id="mainContent" class="hidden">
-        <button id="themeToggle" class="theme-toggle" title="Toggle dark mode">
-            🌓
-        </button>
-        <h1>Welcome to BAM</h1>
+        <button id="themeToggle" class="theme-toggle" title="Toggle dark mode"></button>
         <p>Bluetooth and Messaging</p>
-
         <div class="section">
-
             <div id="setupArea">
                 <h2>Friend Connection</h2>
                 <div id="newConnection">
                     <input type="text" id="newFriendlyName" placeholder="Enter a friendly name for new connection">
                     <button id="createConnectionBtn" class="button" onclick="createConnection()" disabled>Create Connection</button>
                 </div>
-
                 <div id="joinConnection">
                     <input type="text" id="linkInput" placeholder="Enter connection link">
                     <input type="text" id="friendlyName" placeholder="Enter a friendly name">
                     <button class="button" onclick="joinConnection()">Join</button>
                 </div>
-
                 <div id="savedConnections" class="saved-connections">
                     <h3>Saved Connections</h3>
-                    <!-- Saved connections will be populated here -->
                 </div>
             </div>
 
@@ -88,7 +79,6 @@
 
         <div class="section">
             <h2>User Profile & Data Management</h2>
-            <!-- User Identity Section -->
             <div id="userIdentitySection" class="input-container">
                 <div id="nameDisplay" style="display: none;">
                     <p>Your Name: <span id="displayedName"></span> 
