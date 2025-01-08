@@ -158,6 +158,9 @@ const setupEventListeners = () => {
 
 const setupGlobalFunctions = () => {
 
+    window.copyConnectionLink = copyConnectionLink;
+
+    window.ConnectionUI = ConnectionUI;
 
     window.joinConnection = async () => {
         const linkId = document.getElementById('linkInput').value;
