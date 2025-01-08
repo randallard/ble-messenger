@@ -7,11 +7,18 @@ import { themeService } from './services/theme.js';
 import { userService } from './services/user.js';
 import MessageUI from './ui/messageUI.js';
 import ConnectionUI from './ui/connectionUI.js';
+import { VERSION } from './version.js';
 
 console.log('UUID available:', typeof uuid !== 'undefined');
 
 // Initialize services and UI
 const initializeApp = () => {
+
+    const versionElement = document.getElementById('versionInfo');
+    if (versionElement) {
+        versionElement.textContent = `v${VERSION}`;
+    }
+
     // First check if we need initial setup
     const playerId = storageService.getItem('playerId');
     setupEventListeners();

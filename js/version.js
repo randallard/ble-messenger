@@ -1,0 +1,1 @@
+export const VERSION = '0.0.0'; // This will be automatically updated by the build process
