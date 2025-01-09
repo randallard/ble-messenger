@@ -5,102 +5,717 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arduino Control Center</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js"></script>
-    <script type="module" src="/ble-connect/js/main.js"></script>
-    <link rel="stylesheet" href="/ble-connect/css/themes.css">
-    <link rel="stylesheet" href="/ble-connect/css/layout.css">
-    <link rel="stylesheet" href="/ble-connect/css/components/buttons.css">
-    <link rel="stylesheet" href="/ble-connect/css/components/inputs.css">
-    <link rel="stylesheet" href="/ble-connect/css/components/status.css">
-    <link rel="stylesheet" href="/ble-connect/css/components/notifications.css">
-    <link rel="stylesheet" href="/ble-connect/css/components/connections.css">
-    <link rel="stylesheet" href="/ble-connect/css/components/theme-toggle.css">
-    <link rel="stylesheet" href="/ble-connect/css/components/message-area.css">
-    <link rel="stylesheet" href="/ble-connect/css/components/version-info.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .connected {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .disconnected {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        #customText {
+            width: 80%;
+            max-width: 400px;
+            padding: 10px;
+            margin: 20px 0;
+            font-size: 16px;
+            border: 2px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .input-container {
+            margin: 20px 0;
+        }
+        #messageArea {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            min-height: 200px;
+            overflow-y: auto;
+        }
+        .hidden {
+            display: none;
+        }
+        #notifications {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        .saved-connections {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .connection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .connection-item:last-child {
+            border-bottom: none;
+        }
+        .error-notification {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .retry-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+    </style>
 </head>
 <body>
-
-    <div id="initialSetup" class="section">
-        <p>Bluetooth and Messaging</p>
+    <h1>Arduino Control Center</h1>
+    
+    <div class="section">
+        <h2>Device Control</h2>
+        <div id="status" class="disconnected">Disconnected</div>
+        <button id="connectBtn" class="button">Connect to Device</button>
+        <button id="startAnimation" class="button" disabled>Start Animation</button>
+        <button id="stopAnimation" class="button" disabled>Stop Animation</button>
         
         <div class="input-container">
-            <input type="text" id="initialUserName" placeholder="Enter your name">
-            <button id="saveInitialName" class="button">Save Name</button>
-            <p>or</p>
-            <input type="file" id="restoreBackup" accept=".json"  style="display: none;">
-            <button id="loadBackupBtn1" class="button">Load from Backup</button>
+            <input type="text" id="customText" maxlength="32" placeholder="Enter custom text (max 32 characters)">
+            <button id="sendText" class="button" disabled>Send Text</button>
         </div>
     </div>
-    
-    <!-- Add hidden class to other sections -->
-    <div id="mainContent" class="hidden">
-        <button id="themeToggle" class="theme-toggle" title="Toggle dark mode"></button>
-        <div id="themeToggle" class="theme-toggle" title="Toggle dark mode"></div>
-        <div id="versionInfo" class="version-info"></div>
-        <p>Bluetooth and Messaging</p>
-        <div class="section">
-            <div id="setupArea">
-                <h2>Friend Connection</h2>
-                <div id="newConnection">
-                    <input type="text" id="newFriendlyName" placeholder="Enter a friendly name for new connection">
-                    <button id="createConnectionBtn" class="button" onclick="createConnection()" disabled>Create Connection</button>
-                </div>
-                <div id="joinConnection">
-                    <input type="text" id="linkInput" placeholder="Enter connection link">
-                    <input type="text" id="friendlyName" placeholder="Enter a friendly name">
-                    <button class="button" onclick="joinConnection()">Join</button>
-                </div>
-                <div id="savedConnections" class="saved-connections">
-                    <h3>Saved Connections</h3>
-                </div>
+
+    <div class="section">
+
+        <div id="setupArea">
+            <h2>Friend Connection</h2>
+            <div id="newConnection">
+                <input type="text" id="newFriendlyName" placeholder="Enter a friendly name for new connection">
+                <button id="createConnectionBtn" class="button" onclick="createConnection()" disabled>Create Connection</button>
             </div>
 
-            <div id="chatArea" class="hidden">
-                <h2>Chat</h2>
-                <div id="messageArea"></div>
-                <div class="input-container">
-                    <input type="text" id="messageInput" placeholder="Type your message">
-                    <button class="button" onclick="sendMessage()">Send</button>
-                    <button class="button" onclick="sendHeartAnimation()">❤️</button>
-                </div>
+            <div id="joinConnection">
+                <input type="text" id="linkInput" placeholder="Enter connection link">
+                <input type="text" id="friendlyName" placeholder="Enter a friendly name">
+                <button class="button" onclick="joinConnection()">Join</button>
+            </div>
+
+            <div id="savedConnections" class="saved-connections">
+                <h3>Saved Connections</h3>
+                <!-- Saved connections will be populated here -->
             </div>
         </div>
 
-        <div id="notifications"></div>    
-        
-        <div class="section">
-            <h2>Device Control</h2>
-            <div id="status" class="disconnected">Disconnected</div>
-            <button id="connectBtn" class="button">Connect to Device</button>
-            <button id="startAnimation" class="button" disabled>Start Animation</button>
-            <button id="stopAnimation" class="button" disabled>Stop Animation</button>
-            
+        <div id="chatArea" class="hidden">
+            <h2>Chat</h2>
+            <div id="messageArea"></div>
             <div class="input-container">
-                <input type="text" id="customText" maxlength="32" placeholder="Enter custom text (max 32 characters)">
-                <button id="sendText" class="button" disabled>Send Text</button>
+                <input type="text" id="messageInput" placeholder="Type your message">
+                <button class="button" onclick="sendMessage()">Send</button>
+                <button class="button" onclick="sendHeartAnimation()">❤️</button>
             </div>
         </div>
-
-        <div class="section">
-            <h2>User Profile & Data Management</h2>
-            <div id="userIdentitySection" class="input-container">
-                <div id="nameDisplay" style="display: none;">
-                    <p>Your Name: <span id="displayedName"></span> 
-                    <button id="editNameBtn" class="button" style="padding: 5px 10px; margin-left: 10px;">Edit</button>
-                    </p>
-                    <p style="color: #666; font-size: 0.9em;">Player ID: <span id="playerIdDisplay"></span></p>
-                </div>
-                <div id="nameInput" style="display: none;">
-                    <input type="text" id="userNameField" placeholder="Enter your name">
-                    <button id="saveNameBtn" class="button" style="padding: 5px 10px;">Save</button>
-                </div>
-            </div>
-            <button id="exportDataBtn" class="button">Export Local Storage Data</button>
-            <div class="file-input-container">
-                <input type="file" id="backupFileInput" accept=".json" style="display: none;">
-                <button id="loadBackupBtn" class="button">Load Backup</button>
-            </div>
-            <div id="dataManagementStatus" style="margin-top: 10px;"></div>
-        </div> 
     </div>
+
+    <div id="notifications"></div>
+    
+    <script>
+        const API_BASE = '/friends';
+        const API_ENDPOINTS = {
+            CREATE_CONNECTION: `${API_BASE}/connections`,
+            GET_CONNECTION: (linkId) => `${API_BASE}/connections/link/${linkId}`,
+            JOIN_CONNECTION: (linkId) => `${API_BASE}/connections/link/${linkId}/join`,
+            SEND_MESSAGE: (connectionId) => `${API_BASE}/connections/${connectionId}/messages`,
+            GET_NOTIFICATIONS: (playerId) => `${API_BASE}/players/${playerId}/notifications`,
+            ACK_NOTIFICATIONS: (playerId) => `${API_BASE}/players/${playerId}/notifications/ack`
+        };
+
+        // BLE Configuration
+        const serviceUuid = '0000180f-0000-1000-8000-00805f9b34fb';
+        const switchCharUuid = '00002a1b-0000-1000-8000-00805f9b34fb';
+        const textCharUuid = '00002a1c-0000-1000-8000-00805f9b34fb';
+
+        let device = null;
+        let switchCharacteristic = null;
+        let textCharacteristic = null;
+
+        // Chat Configuration
+        function getOrCreatePlayerId() {
+            // Try to get existing player ID from localStorage
+            let storedPlayerId = localStorage.getItem('playerId');
+            
+            if (!storedPlayerId) {
+                // Only generate a new ID if one doesn't exist
+                storedPlayerId = uuid.v4();
+                localStorage.setItem('playerId', storedPlayerId);
+                console.log('Generated new player ID:', storedPlayerId);
+            } else {
+                console.log('Using existing player ID:', storedPlayerId);
+            }
+            
+            return storedPlayerId;
+        }
+
+        // Replace the player ID initialization with this
+        let playerId = getOrCreatePlayerId();
+        let currentConnectionId = null;
+        let pollInterval = null;
+
+        // BLE UI Elements
+        const connectBtn = document.getElementById('connectBtn');
+        const startAnimation = document.getElementById('startAnimation');
+        const stopAnimation = document.getElementById('stopAnimation');
+        const statusDiv = document.getElementById('status');
+        const customText = document.getElementById('customText');
+        const sendText = document.getElementById('sendText');
+
+        async function notifyConnectionStatus(status) {
+            if (!currentConnectionId) return; // Only send if we're in a chat
+            
+            const message = `Device ${status}`;
+            const url = `${API_BASE}/connections/${currentConnectionId}/messages`;
+            
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        content: message
+                    })
+                });
+                appendMessage('System', message);
+            } catch (error) {
+                console.error('Error sending connection status:', error);
+            }
+        }
+
+        // BLE Functions
+        function updateStatus(connected) {
+            statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
+            statusDiv.className = connected ? 'connected' : 'disconnected';
+            startAnimation.disabled = !connected;
+            stopAnimation.disabled = !connected;
+            sendText.disabled = !connected;
+            connectBtn.textContent = connected ? 'Disconnect' : 'Connect to Device';
+            notifyConnectionStatus(connected ? 'Connected' : 'Disconnected');
+        }
+
+        async function connectToDevice() {
+            if (device && device.gatt.connected) {
+                await device.gatt.disconnect();
+                device = null;
+                updateStatus(false);
+                return;
+            }
+
+            try {
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [serviceUuid] }]
+                });
+                
+                device.addEventListener('gattserverdisconnected', () => {
+                    console.log('Device disconnected');
+                    updateStatus(false);
+                });
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(serviceUuid);
+                switchCharacteristic = await service.getCharacteristic(switchCharUuid);
+                textCharacteristic = await service.getCharacteristic(textCharUuid);
+                
+                updateStatus(true);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error);
+            }
+        }
+
+        async function writeSwitch(value) {
+            if (!switchCharacteristic) return;
+            try {
+                await switchCharacteristic.writeValue(Uint8Array.from([value]));
+            } catch (error) {
+                console.error('Error writing value:', error);
+                alert('Error writing value: ' + error);
+            }
+        }
+
+        async function sendCustomText() {
+            if (!textCharacteristic) return;
+            const text = customText.value.trim();
+            if (!text) {
+                alert('Please enter some text');
+                return;
+            }
+
+            try {
+                const encoder = new TextEncoder();
+                await textCharacteristic.writeValue(encoder.encode(text));
+            } catch (error) {
+                console.error('Error sending text:', error);
+                alert('Error sending text: ' + error);
+            }
+        }
+
+        // Chat Functions
+        async function joinConnection() {
+            const linkId = document.getElementById('linkInput').value;
+            const friendlyName = document.getElementById('friendlyName').value;
+            
+            // Save connection with the current player ID before attempting to join
+            if (friendlyName) {
+                saveConnection(linkId, friendlyName, playerId);  // Now passing the playerId
+            }
+
+            const url = `${API_BASE}/connections/link/${linkId}/join`;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player_id: playerId })
+                });
+
+                if (response.status === 404) {
+                    notifications.innerHTML = `
+                        <div class="error-notification">
+                            Connection not found. The link may be invalid or expired.
+                            <button class="retry-button" onclick="joinConnection(${retryAttempt + 1})">
+                                Retry Connection
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+                
+                const connection = await response.json();
+                currentConnectionId = connection.id;
+                
+                document.getElementById('setupArea').classList.add('hidden');
+                document.getElementById('chatArea').classList.remove('hidden');
+                notifications.innerHTML = ''; // Clear any error messages
+                
+                startPolling();
+            } catch (error) {
+                console.error('Error joining connection:', error);
+                notifications.innerHTML = `
+                    <div class="error-notification">
+                        Error connecting: ${error.message}
+                        <button class="retry-button" onclick="joinConnection(${retryAttempt + 1})">
+                            Retry Connection
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        async function sendMessage() {
+            const content = document.getElementById('messageInput').value;
+            if (!content.trim()) return;
+            
+            const url = `${API_BASE}/connections/${currentConnectionId}/messages`;
+            console.log('Sending message to URL:', url);
+            console.log('Message content:', content);
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        content: content
+                    })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('messageInput').value = '';
+                    appendMessage('You', content);
+                } else if (response.status === 404) {
+                    // Connection lost or invalid
+                    stopPolling();
+                    document.getElementById('chatArea').classList.add('hidden');
+                    document.getElementById('setupArea').classList.remove('hidden');
+                    document.getElementById('notifications').innerHTML = 'Connection lost. Please create a new connection or join an existing one.';
+                    currentConnectionId = null;
+                } else {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                document.getElementById('notifications').innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        function saveFriendlyNameForPlayer(playerId, friendlyName) {
+            console.log(`Saving friendly name for player: ${playerId} -> ${friendlyName}`);
+            const playerNames = JSON.parse(localStorage.getItem('playerNames') || '{}');
+            console.log('Current player names:', playerNames);
+            playerNames[playerId] = friendlyName;
+            localStorage.setItem('playerNames', JSON.stringify(playerNames));
+            console.log('Updated player names:', playerNames);
+        }
+
+        function getFriendlyName(playerId) {
+            console.log(`Getting friendly name for player: ${playerId}`);
+            const playerNames = JSON.parse(localStorage.getItem('playerNames') || '{}');
+            console.log('All player names:', playerNames);
+            const friendlyName = playerNames[playerId] || 'Unknown';
+            console.log(`Resolved friendly name: ${friendlyName}`);
+            return friendlyName;
+        }
+
+        async function sendHeartAnimation() {
+            if (!currentConnectionId) return;
+            
+            // Send heart message to chat
+            const url = `${API_BASE}/connections/${currentConnectionId}/messages`;
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        content: "❤️" // Heart emoji
+                    })
+                });
+                appendMessage('You', "❤️");
+            } catch (error) {
+                console.error('Error sending heart message:', error);
+            }
+        }
+
+        async function pollNotifications() {
+            try {
+                const response = await fetch(`${API_BASE}/players/${playerId}/notifications`);
+                if (response.ok) {
+                    const notifications = await response.json();
+                    // console.log('Received notifications:', notifications);
+                    
+                    if (notifications.length > 0) {
+                        notifications.forEach(notification => {
+                            console.log('Processing notification:', notification);
+                            
+                            if (notification.includes('Player') && notification.includes('joined')) {
+                                console.log('Join notification detected');
+                                document.getElementById('setupArea').classList.add('hidden');
+                                document.getElementById('chatArea').classList.remove('hidden');
+                                appendMessage('System', 'Friend joined the chat!');
+                            } 
+                            else if (notification.includes('Message from')) {
+                                console.log('Message notification detected');
+                                const match = notification.match(/Message from (.*?): (.*)/);
+                                if (match) {
+                                    const senderPlayerId = match[1];
+                                    const message = match[2];
+
+                                    if (message === "❤️" && device && device.gatt.connected) {
+                                        writeSwitch(1); // Start animation
+                                        setTimeout(() => writeSwitch(0), 10000); // Stop after 3 seconds
+                                    }
+                                    else {    
+                                        // If this is a new sender, try to use the saved friendly name
+                                        if (getFriendlyName(senderPlayerId) === 'Unknown') {
+                                            const connections = loadSavedConnections();
+                                            console.log('Saved connections:', connections);
+                                            // Get the friendly name from the first connection's friendlyName property
+                                            const firstConnection = Object.values(connections)[0];
+                                            if (firstConnection && firstConnection.friendlyName) {
+                                                console.log(`Assigning name ${firstConnection.friendlyName} to first message sender ${senderPlayerId}`);
+                                                saveFriendlyNameForPlayer(senderPlayerId, firstConnection.friendlyName);
+                                            }
+                                        }
+                                        
+                                        // Send message to Bluetooth device
+                                        if (textCharacteristic && device && device.gatt.connected) {
+                                            try {
+                                                const encoder = new TextEncoder();
+                                                textCharacteristic.writeValue(encoder.encode(message));
+                                                console.log('Sent message to Bluetooth device:', message);
+                                            } catch (error) {
+                                                console.error('Error sending message to Bluetooth device:', error);
+                                            }
+                                        }
+                                    }
+                                    
+                                    appendMessage(senderPlayerId, message);
+                                } else {
+                                    console.log('Failed to match message format:', notification);
+                                }
+                            }
+                        });
+                        
+                        await fetch(`${API_BASE}/players/${playerId}/notifications/ack`, {
+                            method: 'POST'
+                        });
+                        console.log('Notifications acknowledged');
+                    }
+                }
+            } catch (error) {
+                console.error('Error polling notifications:', error);
+            }
+        }
+
+        function saveConnection(linkId, friendlyName, playerId) {
+            console.log(`Saving connection: ${linkId} -> ${friendlyName} (Player: ${playerId})`);
+            const connections = JSON.parse(localStorage.getItem('savedConnections') || '{}');
+            connections[linkId] = {
+                friendlyName: friendlyName,
+                playerId: playerId
+            };
+            localStorage.setItem('savedConnections', JSON.stringify(connections));
+            console.log('Updated saved connections:', connections);
+            displaySavedConnections();
+        }
+
+        function loadSavedConnections() {
+            const connections = JSON.parse(localStorage.getItem('savedConnections') || '{}');
+            console.log('Loading saved connections:', connections);
+            return connections;
+        }
+
+        async function createConnection() {
+            const friendlyName = document.getElementById('newFriendlyName').value.trim();
+            if (!friendlyName) return;
+
+            try {
+                // Generate a new player ID for this connection
+                const newPlayerId = uuid.v4();
+                
+                const response = await fetch(`${API_BASE}/connections`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json' },
+                    body: JSON.stringify({ player_id: newPlayerId })
+                });
+        
+                console.log('Response status:', response.status);
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
+                
+                let connection;
+                try {
+                    connection = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse response:', e);
+                    throw new Error(`Invalid JSON response: ${responseText}`);
+                }
+                currentConnectionId = connection.id;
+                
+                // Save connection with the new player ID
+                saveConnection(connection.link_id, friendlyName, newPlayerId);
+                
+                const linkUrl = `${connection.link_id}`;
+                document.getElementById('notifications').innerHTML = `
+                    Share this link with your friend:<br>
+                    <input type="text" value="${linkUrl}" readonly style="width: 100%">
+                `;
+                
+                document.getElementById('setupArea').classList.add('hidden');
+                document.getElementById('chatArea').classList.remove('hidden');
+                appendMessage('System', 'Waiting for friend to join...');
+                
+                // Use the new player ID for polling
+                playerId = newPlayerId;
+                startPolling();
+            } catch (error) {
+                console.error('Error creating connection:', error);
+                document.getElementById('notifications').innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        async function rejoinConnection(linkId) {
+            const connections = loadSavedConnections();
+            const connectionInfo = connections[linkId];
+            
+            if (!connectionInfo || !connectionInfo.playerId) {
+                document.getElementById('notifications').innerHTML = `
+                    <div class="error-notification">
+                        Error: Connection information not found or incomplete
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                // Use the saved player ID for this connection
+                playerId = connectionInfo.playerId;
+                currentConnectionId = linkId;
+                
+                // Update UI
+                document.getElementById('setupArea').classList.add('hidden');
+                document.getElementById('chatArea').classList.remove('hidden');
+                document.getElementById('notifications').innerHTML = '';
+                document.getElementById('friendlyName').value = connectionInfo.friendlyName;
+                
+                // Start polling with the correct player ID
+                startPolling();
+                appendMessage('System', 'Reconnected to chat');
+                
+            } catch (error) {
+                console.error('Error reconnecting:', error);
+                document.getElementById('notifications').innerHTML = `
+                    <div class="error-notification">
+                        Error reconnecting: ${error.message}
+                        <button class="retry-button" onclick="rejoinConnection('${linkId}')">
+                            Retry Connection
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function displaySavedConnections() {
+            const connections = loadSavedConnections();
+            const container = document.getElementById('savedConnections');
+            container.innerHTML = '<h3>Saved Connections</h3>';
+            
+            Object.entries(connections).forEach(([linkId, info]) => {
+                const div = document.createElement('div');
+                div.className = 'connection-item';
+                div.innerHTML = `
+                    <span>${info.friendlyName}</span>
+                    <div>
+                        <button class="button" onclick="rejoinConnection('${linkId}')">Rejoin</button>
+                        <button class="button" style="background-color: #dc3545;" onclick="deleteConnection('${linkId}')">Delete</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function appendMessage(from, content) {
+            console.log(`Appending message from ${from}: ${content}`);
+            const messageArea = document.getElementById('messageArea');
+            const displayName = from === 'You' || from === 'System' ? from : getFriendlyName(from);
+            console.log(`Display name resolved to: ${displayName}`);
+            messageArea.innerHTML += `<p><strong>${displayName}:</strong> ${content}</p>`;
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+
+
+           function startPolling() {
+            if (!pollInterval) {
+                pollInterval = setInterval(pollNotifications, 1000);
+            }
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+
+        function deleteConnection(linkId) {
+            const connections = loadSavedConnections();
+            delete connections[linkId];
+            localStorage.setItem('savedConnections', JSON.stringify(connections));
+            displaySavedConnections();
+        }
+
+        // Modified joinConnection function
+        async function joinConnection() {
+            const linkId = document.getElementById('linkInput').value;
+            const friendlyName = document.getElementById('friendlyName').value;
+            
+            if (friendlyName) {
+                saveConnection(linkId, friendlyName);
+            }
+
+            const url = `${API_BASE}/connections/link/${linkId}/join`;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player_id: playerId })
+                });
+                
+                const connection = await response.json();
+                currentConnectionId = connection.id;
+                
+                document.getElementById('setupArea').classList.add('hidden');
+                document.getElementById('chatArea').classList.remove('hidden');
+                
+                startPolling();
+            } catch (error) {
+                console.error('Error joining connection:', error);
+                document.getElementById('notifications').innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        // Event Listeners
+        connectBtn.addEventListener('click', connectToDevice);
+        startAnimation.addEventListener('click', () => writeSwitch(1));
+        stopAnimation.addEventListener('click', () => writeSwitch(0));
+        sendText.addEventListener('click', sendCustomText);
+        document.getElementById('newFriendlyName').addEventListener('input', function() {
+            document.getElementById('createConnectionBtn').disabled = !this.value.trim();
+        });
+
+        // Check for link in URL when page loads
+        window.onload = () => {
+            displaySavedConnections();
+            const urlParams = new URLSearchParams(window.location.search);
+            const linkId = urlParams.get('link');
+            if (linkId) {
+                document.getElementById('linkInput').value = linkId;
+            }
+        };
+    </script>
 </body>
 </html>
