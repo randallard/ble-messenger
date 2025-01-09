@@ -7,18 +7,11 @@ import { themeService } from './services/theme.js';
 import { userService } from './services/user.js';
 import MessageUI from './ui/messageUI.js';
 import ConnectionUI from './ui/connectionUI.js';
-import { VERSION } from './version.js';
 
 console.log('UUID available:', typeof uuid !== 'undefined');
 
 // Initialize services and UI
 const initializeApp = () => {
-
-    const versionElement = document.getElementById('versionInfo');
-    if (versionElement) {
-        versionElement.textContent = `v${VERSION}`;
-    }
-
     // First check if we need initial setup
     const playerId = storageService.getItem('playerId');
     setupEventListeners();
@@ -158,32 +151,6 @@ const setupEventListeners = () => {
 
 const setupGlobalFunctions = () => {
 
-    window.copyConnectionLink = copyConnectionLink;
-
-    window.ConnectionUI = ConnectionUI;
-
-    window.joinConnection = async () => {
-        const linkId = document.getElementById('linkInput').value;
-        const friendlyName = document.getElementById('friendlyName').value;
-        
-        if (friendlyName) {
-            storageService.saveConnection(linkId, friendlyName, chatService.playerId);
-        }
-
-        try {
-            const connection = await chatService.joinConnection(linkId, chatService.playerId);
-            chatService.currentConnectionId = connection.id;
-            
-            document.getElementById('setupArea').classList.add('hidden');
-            document.getElementById('chatArea').classList.remove('hidden');
-            
-            chatService.startPolling();
-        } catch (error) {
-            console.error('Error joining connection:', error);
-            document.getElementById('notifications').innerHTML = `Error: ${error.message}`;
-        }
-    };
-
     window.createConnection = async () => {
         const friendlyName = document.getElementById('newFriendlyName').value.trim();
         if (!friendlyName) return;
@@ -196,15 +163,9 @@ const setupGlobalFunctions = () => {
             
             storageService.saveConnection(connection.link_id, friendlyName, newPlayerId);
             
-            // Check if we're running from a file or web server
-            const isWebProtocol = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-            const linkUrl = isWebProtocol 
-                ? `${window.location.origin}/ble-connect?link=${connection.link_id}`
-                : connection.link_id;
-            
             document.getElementById('notifications').innerHTML = `
                 Share this link with your friend:<br>
-                <input type="text" value="${linkUrl}" readonly style="width: 100%">
+                <input type="text" value="${connection.link_id}" readonly style="width: 100%">
             `;
             
             document.getElementById('setupArea').classList.add('hidden');
