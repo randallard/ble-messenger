@@ -32,6 +32,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.CR_PAT }}
 
+      - name: Generate version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --always --dirty)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+    
+      - name: Update version file
+        run: |
+          echo "export const VERSION = '${{ env.VERSION }}';" > js/version.js          
+
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5

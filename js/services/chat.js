@@ -28,10 +28,14 @@ class ChatService {
             throw error;
         }
     }
-
     async joinConnection(linkId, playerId) {
         try {
-            const response = await fetch(API_ENDPOINTS.JOIN_CONNECTION(linkId), {
+            // Extract just the link ID if a full URL was provided
+            const cleanLinkId = linkId.includes('?link=') 
+                ? linkId.split('?link=')[1] 
+                : linkId;
+                
+            const response = await fetch(API_ENDPOINTS.JOIN_CONNECTION(cleanLinkId), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ player_id: playerId })
@@ -47,7 +51,6 @@ class ChatService {
             throw error;
         }
     }
-
     async sendMessage(connectionId, playerId, content) {
         try {
             const response = await fetch(API_ENDPOINTS.SEND_MESSAGE(connectionId), {
