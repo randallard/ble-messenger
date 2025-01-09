@@ -1,13 +1,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  name: production-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-  name: main-ingress
-  namespace: default
 spec:
-  ingressClassName: nginx
   rules:
   - http:
       paths:
@@ -16,12 +13,5 @@ spec:
         backend:
           service:
             name: ble-messenger
-            port:
-              number: 80
-      - path: /friends(/|$)(.*)
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: friends-connect
             port:
               number: 80

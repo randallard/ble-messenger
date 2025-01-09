@@ -2,15 +2,17 @@ name: Deploy to Oracle Cloud K8s
 
 on:
   push:
-    branches: [ main ]
+    branches: [ staging, main ]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      image_digest: ${{ steps.build.outputs.digest }}
     permissions:
       contents: read
       packages: write
@@ -104,3 +106,52 @@ jobs:
             echo "\nLogs for $pod:"
             kubectl logs $pod --tail=50
           done          
+
+  deploy-staging:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Install and configure kubectl
+        uses: azure/setup-kubectl@v3
+        
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy to staging
+        run: |
+          kubectl -n staging set image deployment/ble-messenger ble-messenger=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build-and-push.outputs.image_digest }}
+          kubectl -n staging rollout status deployment/ble-messenger
+
+  approve-production:
+    needs: [build-and-push, deploy-staging]
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment: production-approval
+    steps:
+      - name: Approval check
+        run: echo "Approved for production deployment"
+
+  deploy-production:
+    needs: [build-and-push, approve-production]
+    if: github.ref == 'refs/heads/staging' && needs.approve-production.result == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Install and configure kubectl
+        uses: azure/setup-kubectl@v3
+        
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy to production
+        run: |
+          kubectl set image deployment/ble-messenger ble-messenger=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build-and-push.outputs.image_digest }}
+          kubectl rollout status deployment/ble-messenger

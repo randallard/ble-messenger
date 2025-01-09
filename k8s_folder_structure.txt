@@ -1,0 +1,16 @@
+k8s/
+├── base/                    # Common base configurations
+│   ├── deployment.yaml     # Template deployment
+│   ├── service.yaml        # Template service
+│   └── kustomization.yaml  # Base kustomization
+│
+├── staging/                # Staging environment
+│   ├── namespace.yaml      # Staging namespace definition
+│   ├── ingress.yaml        # Staging-specific ingress
+│   ├── kustomization.yaml  # Staging customizations
+│   └── deployment-patch.yaml  # Staging-specific overrides
+│
+└── production/             # Production environment
+    ├── ingress.yaml        # Production-specific ingress
+    ├── kustomization.yaml  # Production customizations
+    └── deployment-patch.yaml  # Production-specific overrides

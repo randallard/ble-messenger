@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ble-messenger
+spec:
+  selector:
+    matchLabels:
+      app: ble-messenger
+  template:
+    metadata:
+      labels:
+        app: ble-messenger
+    spec:
+      imagePullSecrets:
+      - name: ghcr-secret
+      containers:
+      - name: ble-messenger
+        image: ghcr.io/randallard/ble-messenger
+        ports:
+        - containerPort: 80
